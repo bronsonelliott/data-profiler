@@ -10,7 +10,10 @@
       "Bash(mkdir:*)",
       "Bash(timeout 10 streamlit run:*)",
       "Bash(python:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(curl:*)",
+      "Skill(webapp-testing)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

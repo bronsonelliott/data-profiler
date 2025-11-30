@@ -1,0 +1,101 @@
+with_spaces,with_placeholders,casing_mix,with_special_chars
+ value_0 ,N/A,Active,value	with	tabs
+ value_1 ,N/A,Active,value	with	tabs
+ value_2 ,N/A,Active,value	with	tabs
+ value_3 ,N/A,Active,value	with	tabs
+ value_4 ,N/A,Active,value	with	tabs
+ value_5 ,N/A,Active,normal_value_0
+ value_6 ,N/A,Active,normal_value_1
+ value_7 ,N/A,Active,normal_value_2
+ value_8 ,N/A,Active,normal_value_3
+ value_9 ,N/A,Active,normal_value_4
+ value_10 ,N/A,Active,normal_value_5
+ value_11 ,N/A,Active,normal_value_6
+ value_12 ,N/A,Active,normal_value_7
+ value_13 ,N/A,Active,normal_value_8
+ value_14 ,N/A,Active,normal_value_9
+ value_15 ,null,Active,normal_value_10
+ value_16 ,null,Active,normal_value_11
+ value_17 ,null,Active,normal_value_12
+ value_18 ,null,Active,normal_value_13
+ value_19 ,null,Active,normal_value_14
+value_20,null,Active,normal_value_15
+value_21,null,Active,normal_value_16
+value_22,null,Active,normal_value_17
+value_23,null,Active,normal_value_18
+value_24,null,Active,normal_value_19
+value_25,null,Active,normal_value_20
+value_26,null,Active,normal_value_21
+value_27,null,Active,normal_value_22
+value_28,null,Active,normal_value_23
+value_29,null,Active,normal_value_24
+value_30,unknown,Active,normal_value_25
+value_31,unknown,Active,normal_value_26
+value_32,unknown,Active,normal_value_27
+value_33,unknown,active,normal_value_28
+value_34,unknown,active,normal_value_29
+value_35,unknown,active,normal_value_30
+value_36,unknown,active,normal_value_31
+value_37,unknown,active,normal_value_32
+value_38,unknown,active,normal_value_33
+value_39,unknown,active,normal_value_34
+value_40,unknown,active,normal_value_35
+value_41,unknown,active,normal_value_36
+value_42,unknown,active,normal_value_37
+value_43,unknown,active,normal_value_38
+value_44,unknown,active,normal_value_39
+value_45,TBD,active,normal_value_40
+value_46,TBD,active,normal_value_41
+value_47,TBD,active,normal_value_42
+value_48,TBD,active,normal_value_43
+value_49,TBD,active,normal_value_44
+value_50,TBD,active,normal_value_45
+value_51,TBD,active,normal_value_46
+value_52,TBD,active,normal_value_47
+value_53,TBD,active,normal_value_48
+value_54,TBD,active,normal_value_49
+value_55,valid_data,active,normal_value_50
+value_56,valid_data,active,normal_value_51
+value_57,valid_data,active,normal_value_52
+value_58,valid_data,active,normal_value_53
+value_59,valid_data,active,normal_value_54
+value_60,valid_data,active,normal_value_55
+value_61,valid_data,active,normal_value_56
+value_62,valid_data,active,normal_value_57
+value_63,valid_data,active,normal_value_58
+value_64,valid_data,active,normal_value_59
+value_65,valid_data,active,normal_value_60
+value_66,valid_data,ACTIVE,normal_value_61
+value_67,valid_data,ACTIVE,normal_value_62
+value_68,valid_data,ACTIVE,normal_value_63
+value_69,valid_data,ACTIVE,normal_value_64
+value_70,valid_data,ACTIVE,normal_value_65
+value_71,valid_data,ACTIVE,normal_value_66
+value_72,valid_data,ACTIVE,normal_value_67
+value_73,valid_data,ACTIVE,normal_value_68
+value_74,valid_data,ACTIVE,normal_value_69
+value_75,valid_data,ACTIVE,normal_value_70
+value_76,valid_data,ACTIVE,normal_value_71
+value_77,valid_data,ACTIVE,normal_value_72
+value_78,valid_data,ACTIVE,normal_value_73
+value_79,valid_data,ACTIVE,normal_value_74
+value_80,valid_data,ACTIVE,normal_value_75
+value_81,valid_data,ACTIVE,normal_value_76
+value_82,valid_data,ACTIVE,normal_value_77
+value_83,valid_data,ACTIVE,normal_value_78
+value_84,valid_data,ACTIVE,normal_value_79
+value_85,valid_data,ACTIVE,normal_value_80
+value_86,valid_data,ACTIVE,normal_value_81
+value_87,valid_data,ACTIVE,normal_value_82
+value_88,valid_data,ACTIVE,normal_value_83
+value_89,valid_data,ACTIVE,normal_value_84
+value_90,n/a,ACTIVE,normal_value_85
+value_91,n/a,ACTIVE,normal_value_86
+value_92,n/a,ACTIVE,normal_value_87
+value_93,n/a,ACTIVE,normal_value_88
+value_94,n/a,ACTIVE,normal_value_89
+value_95,n/a,ACTIVE,normal_value_90
+value_96,n/a,ACTIVE,normal_value_91
+value_97,n/a,ACTIVE,normal_value_92
+value_98,n/a,ACTIVE,normal_value_93
+value_99,n/a,ACTIVE,normal_value_94

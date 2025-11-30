@@ -90,13 +90,24 @@ Maps pandas dtypes to simplified business types:
 
 Each flag includes `code`, `severity` (info/warning/error), and `message`:
 
-- **HIGH_MISSING** (warning): missing_pct >= 30%
+**Basic Flags**:
+- **HIGH_MISSING** (warning): missing_pct >= configurable threshold (default 10%)
 - **CONSTANT_COLUMN** (info): unique_count == 1
 - **DOMINANT_VALUE** (info): top value accounts for >= 95% of rows
 - **HIGH_CARDINALITY_CATEGORICAL** (warning): categorical/text type with unique_count > 1000
 - **POTENTIAL_ID_COLUMN** (info): unique_count / total_rows > 0.9 AND column name matches ID pattern (id, *_id, *id)
 - **MIXED_TYPES** (warning): object dtype with multiple Python types detected
-- **DATETIME_PARSING_ISSUES** (warning, optional): object column with many unparsable datetime values
+
+**Advanced Flags** (Phase 1-4 implementations):
+- **SKEWED_DISTRIBUTION** (info): Numeric column has |skewness| > 2.0
+- **CONTAINS_ZEROS** (info): Numeric column has > 10% zero values
+- **CONTAINS_NEGATIVES** (warning): Amount/price columns with negative values detected
+- **FUTURE_DATES** (warning): Datetime column contains dates beyond today
+- **WHITESPACE_ISSUES** (warning): Text values with leading/trailing whitespace > 1%
+- **PLACEHOLDER_VALUES** (info/warning): Common placeholders detected (N/A, null, unknown, etc.)
+- **INCONSISTENT_CASING** (info): Text column has same values with different cases
+- **SPECIAL_CHARACTERS** (info): Values contain non-printable special characters > 0.5%
+- **DUPLICATE_ROWS** (info/warning): Exact duplicate rows detected (>1% info, >5% warning)
 
 ## Implementation Guidelines
 
@@ -114,6 +125,33 @@ For numeric columns, use pandas methods efficiently:
 
 ### Quality Flag Generation
 Wire quality flags into profiling pipeline by calling `generate_quality_flags()` for each column after computing its stats, then attach results to `col_profile["quality_flags"]`.
+
+### New Feature Implementations (Phase 1-4)
+
+**Phase 1: Value Distribution Patterns**
+- Compute skewness using `scipy.stats.skew()` for numeric columns
+- Count zero and negative values as percentages of non-null values
+- Detect future dates by comparing datetime values against `pd.Timestamp.now()`
+
+**Phase 2: String Quality Checks**
+- Use pandas `.str` vectorized methods for efficiency on large datasets
+- Sample first 1000 rows for string analysis to maintain performance
+- Detect whitespace with `.str.strip()` != original values
+- Check for placeholder values against hardcoded list (N/A, null, None, unknown, etc.)
+- Detect casing inconsistencies using `.str.lower()` comparisons
+- Count non-printable characters using character code checks
+
+**Phase 3: Sample Data Display**
+- Collect 3-5 representative examples for each quality flag
+- Include row numbers in examples for traceability
+- Use `_collect_examples()` helper to extract flagged values
+- Attach examples via `_add_examples_to_flags()` function
+
+**Phase 4: Duplicate Detection**
+- Use pandas `drop_duplicates()` for exact row duplication detection
+- Perform duplicate analysis at dataset level (not per-column)
+- Include duplicate count, percentage, and duplicate set details
+- Severity: info for >1%, warning for >5%
 
 ### UI Layout Strategy
 Streamlit layout follows this structure:
@@ -146,9 +184,25 @@ Test with representative datasets covering:
 
 Validate that quality flags appear appropriately for each scenario.
 
+## Testing
+
+Comprehensive testing infrastructure is available in the `tests/` directory:
+
+- **execute_all_tests.py**: Executes all 72 test cases (100% pass rate verified)
+- **create_test_data.py**: Generates 5 test CSV files covering all features
+- **run_tests.py**: Interactive testing with file upload simulation
+- **test_automation.py**: Automated Playwright-based testing
+
+Test documentation in `docs/`:
+- **TEST_PLAN.md**: 72 comprehensive test cases organized in 6 categories
+- **FINAL_TEST_REPORT.md**: Complete test results and sign-off
+- **TESTING_GUIDE.md**: User-friendly testing guide with manual checklist
+
 ## Reference
 
-The complete specification is in `PRD.md`, including:
-- Detailed functional requirements (FR1-FR15)
-- Success criteria for MVP
-- Weekend development plan with implementation phases
+Documentation files:
+- **PRD.md**: Product requirements document with detailed specifications
+- **README.md**: User guide with feature overview and usage instructions
+- **docs/FEATURE_QUICK_REFERENCE.md**: Feature overview with quality flag thresholds
+- **docs/IMPLEMENTATION_SUMMARY.md**: Technical implementation details
+- **STATUS.md**: Project status and development progress

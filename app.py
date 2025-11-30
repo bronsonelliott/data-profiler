@@ -6,9 +6,9 @@ import streamlit as st
 import pandas as pd
 import json
 from io_utils import load_file
-from profiling import profile_dataframe
-from quality import generate_quality_flags
-from export_utils import profile_to_summary_df
+from profiling import profile_dataframe, _add_examples_to_flags
+from quality import generate_quality_flags, generate_dataset_quality_flags
+from export_utils import profile_to_summary_df, dataset_summary_to_dict
 
 
 # Page configuration
@@ -77,8 +77,13 @@ else:
 
             # Add quality flags to each column
             for col_name, col_profile in profile["columns"].items():
+                # Generate base flags (without examples)
                 flags = generate_quality_flags(col_name, col_profile, profile["dataset"]["n_rows"], null_threshold)
-                col_profile["quality_flags"] = flags
+
+                # Add examples to flags
+                flags_with_examples = _add_examples_to_flags(flags, df[col_name], col_profile)
+
+                col_profile["quality_flags"] = flags_with_examples
 
         st.success(f"Successfully profiled {len(df):,} rows and {len(df.columns)} columns")
 
@@ -93,6 +98,42 @@ else:
         with col3:
             memory_mb = profile['dataset']['memory_usage_bytes'] / (1024 * 1024)
             st.metric("Memory Usage", f"{memory_mb:.2f} MB")
+
+        # Duplicate Analysis Section
+        dup_analysis = profile['dataset'].get('duplicate_analysis')
+        if dup_analysis and dup_analysis.get('unique_rows', -1) >= 0:
+            st.subheader("🔄 Duplicate Analysis")
+
+            dup_col1, dup_col2, dup_col3 = st.columns(3)
+            with dup_col1:
+                st.metric("Unique Rows", f"{dup_analysis['unique_rows']:,}")
+            with dup_col2:
+                st.metric("Duplicate Rows", f"{dup_analysis['duplicate_rows']:,}")
+            with dup_col3:
+                st.metric("Duplicate %", f"{dup_analysis['duplicate_pct']:.1f}%")
+
+            # Dataset-level quality flags
+            dataset_flags = generate_dataset_quality_flags(profile['dataset'])
+
+            if dataset_flags:
+                for flag in dataset_flags:
+                    if flag["severity"] == "warning":
+                        st.warning(f"⚠️ **{flag['code']}**: {flag['message']}")
+                    else:
+                        st.info(f"ℹ️ **{flag['code']}**: {flag['message']}")
+
+            # Show duplicate examples
+            if dup_analysis.get('duplicate_sets'):
+                with st.expander(f"View Duplicate Sets ({len(dup_analysis['duplicate_sets'])} shown)"):
+                    for i, dup_set in enumerate(dup_analysis['duplicate_sets'], 1):
+                        st.markdown(f"**Set {i}: Appears {dup_set['count']} times**")
+                        st.caption(f"Example rows: {', '.join(map(str, dup_set['example_indices']))}")
+
+                        # Display row data as JSON
+                        st.json(dup_set['row_data'])
+                        st.divider()
+        elif dup_analysis and dup_analysis.get('error'):
+            st.warning(f"⚠️ Duplicate detection: {dup_analysis['error']}")
 
         # Column Summary Table
         st.header("📊 Column Profile Summary")
@@ -132,12 +173,22 @@ else:
                     if col_profile["quality_flags"]:
                         st.subheader("⚠️ Quality Flags")
                         for flag in col_profile["quality_flags"]:
+                            # Display flag with severity color
                             if flag["severity"] == "error":
                                 st.error(f"**{flag['code']}**: {flag['message']}")
                             elif flag["severity"] == "warning":
                                 st.warning(f"**{flag['code']}**: {flag['message']}")
                             else:
                                 st.info(f"**{flag['code']}**: {flag['message']}")
+
+                            # Display examples if available
+                            if flag.get("examples"):
+                                with st.expander(f"View Examples ({len(flag['examples'])} shown)"):
+                                    for ex in flag["examples"]:
+                                        if ex['value'] == "NULL":
+                                            st.text(f"Row {ex['row_number']}: [NULL value]")
+                                        else:
+                                            st.text(f"Row {ex['row_number']}: {ex['value']}")
 
                     # Top values
                     if col_profile["top_values"]:
@@ -149,7 +200,7 @@ else:
                     if col_profile["numeric_stats"]:
                         st.subheader("📈 Numeric Statistics")
                         stats = col_profile["numeric_stats"]
-                        stats_col1, stats_col2, stats_col3 = st.columns(3)
+                        stats_col1, stats_col2, stats_col3, stats_col4 = st.columns(4)
 
                         with stats_col1:
                             st.metric("Min", f"{stats['min']:.2f}" if stats['min'] is not None else "N/A")
@@ -163,6 +214,13 @@ else:
                             st.metric("Max", f"{stats['max']:.2f}" if stats['max'] is not None else "N/A")
                             st.metric("P75", f"{stats['p75']:.2f}" if stats['p75'] is not None else "N/A")
 
+                        with stats_col4:
+                            st.metric("Skewness", f"{stats['skewness']:.2f}" if stats['skewness'] is not None else "N/A")
+                            if stats.get('zero_count') is not None and stats['zero_count'] > 0:
+                                st.metric("Zeros", f"{stats['zero_count']:,} ({stats['zero_pct']:.1f}%)")
+                            if stats.get('negative_count') is not None and stats['negative_count'] > 0:
+                                st.metric("Negatives", f"{stats['negative_count']:,} ({stats['negative_pct']:.1f}%)")
+
                     # Datetime statistics
                     if col_profile["datetime_stats"]:
                         st.subheader("📅 Datetime Range")
@@ -175,28 +233,68 @@ else:
                         with dt_col2:
                             st.metric("Max Date", dt_stats['max'] if dt_stats['max'] else "N/A")
 
+                        # Future dates warning
+                        if dt_stats.get('future_count', 0) > 0:
+                            st.warning(f"⚠️ Contains {dt_stats['future_count']:,} future dates ({dt_stats['future_pct']:.1f}%)")
+                            st.caption(f"Latest future date: {dt_stats.get('max_future_date', 'N/A')}")
+
+                    # String quality analysis
+                    if col_profile.get("string_quality"):
+                        st.subheader("🔤 String Quality Analysis")
+                        sq = col_profile["string_quality"]
+                        sq_col1, sq_col2 = st.columns(2)
+
+                        with sq_col1:
+                            st.metric("Whitespace Issues",
+                                     f"{sq['whitespace_count']:,} ({sq['whitespace_pct']:.1f}%)")
+                            st.metric("Placeholder Values",
+                                     f"{sq['placeholder_count']:,} ({sq['placeholder_pct']:.1f}%)")
+                            if sq['placeholder_values']:
+                                st.caption(f"Found: {', '.join(sq['placeholder_values'][:3])}")
+
+                        with sq_col2:
+                            st.metric("Casing Issues", "Yes" if sq['casing_issues'] else "No")
+                            if sq['casing_issues']:
+                                st.caption(f"{sq['casing_groups']} groups with variants")
+                            st.metric("Special Characters",
+                                     f"{sq['special_char_count']:,} ({sq['special_char_pct']:.1f}%)")
+
         # Export functionality
         st.header("💾 Export Profile")
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
             csv_data = summary_df.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label="📄 Download as CSV",
+                label="📄 Download Column Summary (CSV)",
                 data=csv_data,
-                file_name=f"{uploaded_file.name}_profile.csv",
+                file_name=f"{uploaded_file.name}_column_profile.csv",
                 mime="text/csv",
                 help="Download the column profile summary as a CSV file",
                 use_container_width=True
             )
 
         with col2:
+            # Export dataset summary
+            dataset_summary = dataset_summary_to_dict(profile)
+            dataset_df = pd.DataFrame([dataset_summary])
+            dataset_csv = dataset_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📊 Download Dataset Summary (CSV)",
+                data=dataset_csv,
+                file_name=f"{uploaded_file.name}_dataset_summary.csv",
+                mime="text/csv",
+                help="Download dataset summary including duplicate analysis",
+                use_container_width=True
+            )
+
+        with col3:
             json_data = json.dumps(profile, indent=2).encode('utf-8')
             st.download_button(
-                label="📋 Download as JSON",
+                label="📋 Download Full Profile (JSON)",
                 data=json_data,
-                file_name=f"{uploaded_file.name}_profile.json",
+                file_name=f"{uploaded_file.name}_full_profile.json",
                 mime="application/json",
                 help="Download the complete profile structure as JSON",
                 use_container_width=True

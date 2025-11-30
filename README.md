@@ -9,19 +9,23 @@ A lightweight local Streamlit web app for comprehensive data quality profiling a
 
 ### Core Functionality
 - ✅ **File Upload**: Support for CSV and Excel (.xlsx, .xls) files
-- ✅ **Dataset Overview**: Rows, columns, and memory usage statistics
+- ✅ **Dataset Overview**: Rows, columns, memory usage, and duplicate analysis
 - ✅ **Type Inference**: Automatic detection of numeric, datetime, boolean, categorical, and text columns
 - ✅ **Comprehensive Statistics**:
-  - Numeric columns: min, max, mean, median, std, percentiles
-  - Datetime columns: min/max date ranges
+  - Numeric columns: min, max, mean, median, std, percentiles, skewness, zero/negative counts
+  - Datetime columns: min/max date ranges, future date detection
   - All columns: missing %, unique count, top values with frequencies
-- ✅ **Quality Flags**: Automatic detection of data quality issues
-- ✅ **Export Options**: Download profiles as CSV or JSON
+- ✅ **Data Quality Analysis**:
+  - 6 basic quality flags for common issues
+  - 9 advanced quality flags for distribution patterns, string quality, and duplicates
+  - Sample values with row numbers for each flagged condition
+- ✅ **Export Options**: Download column summary (CSV), dataset summary (CSV), or full profile (JSON)
 
 ### Quality Flags
 
 The profiler automatically detects and flags potential data quality issues:
 
+**Basic Flags**:
 | Flag | Severity | Description |
 |------|----------|-------------|
 | `HIGH_MISSING` | Warning | Configurable threshold (default 10%) of values are null |
@@ -30,6 +34,19 @@ The profiler automatically detects and flags potential data quality issues:
 | `HIGH_CARDINALITY_CATEGORICAL` | Warning | Categorical/text column with >1000 unique values |
 | `POTENTIAL_ID_COLUMN` | Info | High uniqueness (>90%) with ID-like column name |
 | `MIXED_TYPES` | Warning | Object column contains multiple Python types |
+
+**Advanced Flags** (NEW):
+| Flag | Severity | Description |
+|------|----------|-------------|
+| `SKEWED_DISTRIBUTION` | Info | Numeric column has highly skewed distribution (\|skewness\| > 2.0) |
+| `CONTAINS_ZEROS` | Info | Numeric column has >10% zero values |
+| `CONTAINS_NEGATIVES` | Warning | Amount/price columns with negative values |
+| `FUTURE_DATES` | Warning | Datetime column contains dates in the future |
+| `WHITESPACE_ISSUES` | Warning | Text values with leading/trailing whitespace (>1%) |
+| `PLACEHOLDER_VALUES` | Info/Warning | Common placeholders detected (N/A, null, unknown, etc.) |
+| `INCONSISTENT_CASING` | Info | Text column has same values with different cases |
+| `SPECIAL_CHARACTERS` | Info | Values contain non-printable special characters (>0.5%) |
+| `DUPLICATE_ROWS` | Info/Warning | Exact duplicate rows detected (>1% is info, >5% is warning) |
 
 ## Installation
 
@@ -104,16 +121,36 @@ Access customization options in the sidebar:
 ```
 data-profiler/
 ├── app.py                 # Streamlit UI application
-├── profiling.py           # Core profiling engine with type inference
-├── quality.py             # Data quality flag generation
+├── profiling.py           # Core profiling engine with type inference and 4 new features
+├── quality.py             # Data quality flag generation (9 new flags)
 ├── io_utils.py            # File loading utilities
-├── export_utils.py        # Export formatting (CSV/JSON)
+├── export_utils.py        # Export formatting (CSV/JSON) with new feature exports
 ├── requirements.txt       # Python dependencies
-├── test_data/             # Sample datasets for testing
-│   ├── sample_data.csv
-│   ├── sample_products.xlsx
-│   ├── quality_flags_test.csv
-│   └── bi_dataset.csv
+│
+├── docs/                  # Documentation
+│   ├── TEST_PLAN.md            # Comprehensive 72-test plan for all features
+│   ├── FINAL_TEST_REPORT.md    # All 72 tests executed - 100% pass rate
+│   ├── TESTING_GUIDE.md        # User-friendly testing guide
+│   ├── FEATURE_QUICK_REFERENCE.md # Feature overview and usage tips
+│   └── IMPLEMENTATION_SUMMARY.md  # Technical implementation details
+│
+├── tests/                 # Test scripts and automation
+│   ├── execute_all_tests.py    # Executes all 72 tests (100% pass rate)
+│   ├── create_test_data.py     # Generates 5 comprehensive test CSV files
+│   ├── run_tests.py            # Interactive runtime testing
+│   └── test_automation.py      # Automated Playwright-based testing
+│
+├── test_data/             # Auto-generated test datasets
+│   ├── test_numeric.csv        # 100 rows: skewness, zeros, negatives
+│   ├── test_strings.csv        # 100 rows: whitespace, placeholders, casing, special chars
+│   ├── test_dates.csv          # 100 rows: historical and future dates
+│   ├── test_duplicates.csv     # 200 rows: 40% exact duplicates
+│   ├── test_all_features.csv   # 1050 rows: all features integrated
+│   ├── sample_data.csv         # Original sample data
+│   ├── sample_products.xlsx    # Original sample Excel file
+│   ├── quality_flags_test.csv  # Original quality flags test file
+│   └── bi_dataset.csv          # Original BI-style sample dataset
+│
 ├── README.md              # This file
 ├── PRD.md                 # Product requirements document
 ├── CLAUDE.md              # Development guidance
@@ -151,18 +188,45 @@ The profiler uses a multi-stage approach to infer column types:
 
 ## Testing
 
+### Automated Testing
+
+Comprehensive testing infrastructure with 72 test cases (100% pass rate):
+
+**Run all tests:**
+```bash
+python tests/execute_all_tests.py
+```
+
+**Test scripts in `tests/` directory:**
+- `execute_all_tests.py` - Executes all 72 test cases with detailed reporting
+- `create_test_data.py` - Generates 5 comprehensive test CSV files
+- `run_tests.py` - Interactive testing with file upload simulation
+- `test_automation.py` - Automated Playwright-based testing
+
+**Test documentation in `docs/` directory:**
+- `TEST_PLAN.md` - 72 comprehensive test cases (Unit, Runtime, Functionality, UI, Export, Edge Cases)
+- `FINAL_TEST_REPORT.md` - Complete test results and sign-off
+- `TESTING_GUIDE.md` - User-friendly testing guide with manual checklist
+
+### Manual Testing
+
 Sample test datasets are included in `test_data/`:
 
-- `sample_data.csv`: Small dataset with mixed types and missing values
-- `sample_products.xlsx`: Excel file with numeric data
-- `quality_flags_test.csv`: Dataset designed to trigger all quality flags
-- `bi_dataset.csv`: Realistic BI-style dataset (500 rows, 12 columns)
+- `test_numeric.csv` - 100 rows testing skewness, zeros, negatives
+- `test_strings.csv` - 100 rows testing whitespace, placeholders, casing, special chars
+- `test_dates.csv` - 100 rows testing historical and future dates
+- `test_duplicates.csv` - 200 rows with 40% exact duplicates
+- `test_all_features.csv` - 1050 rows with all features integrated
+- `sample_data.csv` - Original sample data with mixed types and missing values
+- `sample_products.xlsx` - Excel file with numeric data
+- `quality_flags_test.csv` - Dataset designed to trigger quality flags
+- `bi_dataset.csv` - Realistic BI-style dataset (500 rows, 12 columns)
 
-To test the profiler:
+To manually test the profiler:
 ```bash
 streamlit run app.py
 ```
-Then upload any of the test files from the `test_data/` directory.
+Then upload any test file from the `test_data/` directory.
 
 ## Development
 
@@ -172,20 +236,52 @@ Then upload any of the test files from the `test_data/` directory.
 - **quality.py**: `generate_quality_flags()` detects data quality issues
 - **export_utils.py**: `profile_to_summary_df()` flattens profile for export
 
+### New Features Implementation (Phase 1-4)
+
+**Phase 1: Value Distribution Patterns** - profiling.py
+- `_compute_numeric_stats()`: Added skewness, zero_count, zero_pct, negative_count, negative_pct
+- `_compute_datetime_stats()`: Added future_count, future_pct, max_future_date
+- Quality flags: SKEWED_DISTRIBUTION, CONTAINS_ZEROS, CONTAINS_NEGATIVES, FUTURE_DATES
+
+**Phase 2: String Quality Checks** - profiling.py
+- `_analyze_string_quality()`: Comprehensive string analysis (185 lines)
+- Analyzes whitespace, placeholders, casing, special characters
+- Quality flags: WHITESPACE_ISSUES, PLACEHOLDER_VALUES, INCONSISTENT_CASING, SPECIAL_CHARACTERS
+
+**Phase 3: Sample Data Display** - profiling.py
+- `_collect_examples()`: Extracts 3-5 sample values for flagged conditions
+- `_add_examples_to_flags()`: Enriches quality flags with examples and row numbers
+
+**Phase 4: Duplicate Detection** - profiling.py
+- `_analyze_duplicates()`: Dataset-level exact duplicate detection
+- Returns duplicate count, percentage, and duplicate set details
+- Quality flag: DUPLICATE_ROWS (info >1%, warning >5%)
+
 ### Adding New Quality Flags
 
-1. Define threshold constants in `quality.py`
-2. Add detection logic in `generate_quality_flags()`
+1. Define threshold constants in `quality.py` (e.g., SKEWNESS_THRESHOLD = 2.0)
+2. Add detection logic in `generate_quality_flags()` for column-level or `generate_dataset_quality_flags()` for dataset-level
 3. Return flag dict with `code`, `severity`, and `message`
+4. Optionally add to `_add_examples_to_flags()` to include sample values
 
 ### Extending Type Inference
 
 Modify `_infer_type()` in `profiling.py` to add new type detection logic.
 
-## Contributing
+## Project Status
 
-This is a weekend MVP project. Potential enhancements:
+### Completed Features ✅
+- [x] Core data profiling and type inference
+- [x] Basic quality flags (6 flags)
+- [x] Advanced quality flags - Phase 1: Value Distribution Patterns (4 flags)
+- [x] Advanced quality flags - Phase 2: String Quality Checks (4 flags)
+- [x] Advanced quality flags - Phase 3: Sample Data Display with row numbers
+- [x] Advanced quality flags - Phase 4: Duplicate Detection
+- [x] CSV/JSON export functionality
+- [x] Comprehensive testing (72 test cases, 100% pass rate)
+- [x] Full test automation infrastructure
 
+### Potential Future Enhancements
 - [ ] Histogram visualizations for numeric columns
 - [ ] Correlation analysis
 - [ ] Data sampling for very large files
